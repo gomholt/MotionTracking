@@ -1,5 +1,3 @@
-//development branch new features add here when completed
-
 #include "opencv2/opencv.hpp"
 #include <iostream>
 int thresh_max = 100;
@@ -14,7 +12,6 @@ struct diff {
 	int rowDiffmax = 0;
 	int colDiffmax = 0;
 };
-
 
 void calcDiff(cv::Mat& prev, cv::Mat& curr, diff& diff) {
 
@@ -88,7 +85,7 @@ int main(int, char**)
 {
 	thresh = 36;
 	box_thresh = 50;
-	cv::VideoCapture cap(2); // open the default camera
+	cv::VideoCapture cap(1); // open the default camera
 	if (!cap.isOpened())  // check if we succeeded
 		return -1;
 
@@ -107,12 +104,10 @@ int main(int, char**)
 	for (;;)
 	{
 		cv::Mat curr;
-		cap >> curr;
-
+		
 		diff diff;
-
+		cap >> curr;
 		diff.mat = cv::Mat(curr.size(), curr.type());
-
 		cv::GaussianBlur(curr, curr, cv::Size(7, 7), 1.5, 1.5);
 
 		calcDiff(prev, curr, diff);
