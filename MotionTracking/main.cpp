@@ -1,9 +1,15 @@
 #include "opencv2/opencv.hpp"
+#include "opencv2\highgui.hpp"
+#include "opencv2\imgproc.hpp"
 #include <iostream>
+#include <queue>
+#include <algorithm>
+
 int thresh_max = 100;
 int thresh;
 int box_thresh_max = 100;
 int box_thresh;
+cv::RNG rng(12345);
 
 struct diff {
 	cv::Mat mat;
@@ -121,6 +127,50 @@ int main(int, char**)
 			if (bound.area() > 300) {
 				cv::Mat roiColor = curr(bound);
 				cv::Mat roiBinary = diff.mat(bound);
+				cv::Mat binary;
+
+				cv::cvtColor(roiBinary, binary, CV_BGR2GRAY);
+				std::vector<std::vector<cv::Point>> contours;
+				std::vector<cv::Vec4i> hierarchy;
+				cv::findContours(binary, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
+
+
+				auto order = [](std::pair<double, std::vector<cv::Point>>& a, std::pair<double, std::vector<cv::Point>>&  b) -> bool {
+					return a.first < b.first;
+				};
+				//std::priority_queue<std::pair<double, std::vector<cv::Point>>,std::vector<std::pair<double, std::vector<cv::Point>>>, decltype(order)> reducedContours(order);
+				std::vector <std::pair<double, std::vector<cv::Point>>> reducedCountours;
+				int count = 0;
+				double max = 0;
+				for (auto i = contours.begin(); i != contours.end(); ++i) {
+					double temp = cv::contourArea(*i);
+					if (temp > max) {
+						max = temp;
+					}
+					reducedCountours.push_back(std::make_pair(temp , *i));
+				}
+				std::sort(reducedCountours.begin(), reducedCountours.end(), order);
+				std::cout << reducedCountours.size()<< std::endl;
+				for (int i = 0; i < reducedCountours.size(); ++i) {
+					if (reducedCountours[i].first < max / 10) {
+						reducedCountours.erase(reducedCountours.begin());
+					}
+				}
+				std::cout << reducedCountours.size() << "\n\n\n" << std::endl;
+				std::vector<std::vector<cv::Point>> new_contours;
+				for (auto i = reducedCountours.begin(); i != reducedCountours.end(); ++i) {
+					new_contours.push_back(i->second);
+				}
+
+
+
+				for (int i = 0; i < new_contours.size(); ++i) {
+					cv::Scalar color = cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
+					cv::drawContours(roiBinary, new_contours, i, color, 2, 8, hierarchy, 0, cv::Point());
+				}
+				
+				//clean up the block above this
+				
 				cv::Mat bufferH = cv::Mat(roiColor.rows, (curr.cols * 2 - roiColor.cols * 2), curr.type(), cv::Scalar(50, 50, 50));
 				std::vector<cv::Mat> matrices = { roiColor,roiBinary,bufferH };
 				cv::hconcat(matrices, bufferH);
