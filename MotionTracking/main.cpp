@@ -19,7 +19,44 @@ struct diff {
 	int colDiffmax = 0;
 };
 
-void calcDiff(cv::Mat& prev, cv::Mat& curr, diff& diff) {
+void calcDiffHue(cv::Mat& prev, cv::Mat& curr, diff& diff) {
+	for (int i = 0; i < prev.rows; ++i) {
+		cv::Vec3b* currPixel = curr.ptr<cv::Vec3b>(i);
+		cv::Vec3b* prevPixel = prev.ptr<cv::Vec3b>(i);
+		cv::Vec3b* diffPixel = diff.mat.ptr<cv::Vec3b>(i);
+
+		for (int j = 0; j < prev.cols; ++j) {
+			
+			diffPixel[j][0] = (currPixel[j][0] > prevPixel[j][0]) ? currPixel[j][0] - prevPixel[j][0] : prevPixel[j][0] - currPixel[j][0];
+			//diffPixel[j][1] = (currPixel[j][1] > prevPixel[j][1]) ? currPixel[j][1] - prevPixel[j][1] : prevPixel[j][1] - currPixel[j][1];
+			//diffPixel[j][2] = (currPixel[j][2] > prevPixel[j][2]) ? currPixel[j][2] - prevPixel[j][2] : prevPixel[j][2] - currPixel[j][2];
+
+			if ((diffPixel[j][0] /*+ diffPixel[j][1] + diffPixel[j][2]*/) > thresh) {
+				std::cout << currPixel[j][0] << " " << prevPixel[j][0] <<" " << diffPixel[j][0] << std::endl;
+				diffPixel[j] = { 255,255,255 };
+				diff.colDifftotals[j] += 1;
+				diff.rowDifftotals[i] += 1;
+			}
+			else {
+				diffPixel[j] = { 0,0,0 };
+			}
+		}
+	}
+
+	for (int i = 0; i < prev.rows; ++i) {
+		if (diff.rowDifftotals[i] > diff.rowDiffmax) {
+			diff.rowDiffmax = diff.rowDifftotals[i];
+		}
+	}
+	for (int i = 0; i < prev.cols; ++i) {
+		if (diff.colDifftotals[i] > diff.colDiffmax) {
+			diff.colDiffmax = diff.colDifftotals[i];
+		}
+	}
+}
+	
+
+void calcDiffRGB(cv::Mat& prev, cv::Mat& curr, diff& diff) {
 
 	for (int i = 0; i < prev.rows; ++i) {
 		cv::Vec3b* currPixel = curr.ptr<cv::Vec3b>(i);
@@ -116,7 +153,13 @@ int main(int, char**)
 		diff.mat = cv::Mat(curr.size(), curr.type());
 		cv::GaussianBlur(curr, curr, cv::Size(7, 7), 1.5, 1.5);
 
-		calcDiff(prev, curr, diff);
+		//calcDiffRGB(prev, curr, diff);
+
+		cv::Mat prevHSV, currHSV;
+		cv::cvtColor(curr, currHSV, CV_BGR2HSV);
+		cv::cvtColor(prev, prevHSV, CV_BGR2HSV);
+
+		calcDiffHue(prevHSV, currHSV, diff);
 		curr.copyTo(prev);
 
 		std::vector<int> box;
@@ -140,6 +183,7 @@ int main(int, char**)
 				};
 				//std::priority_queue<std::pair<double, std::vector<cv::Point>>,std::vector<std::pair<double, std::vector<cv::Point>>>, decltype(order)> reducedContours(order);
 				std::vector <std::pair<double, std::vector<cv::Point>>> reducedCountours;
+				
 				int count = 0;
 				double max = 0;
 				for (auto i = contours.begin(); i != contours.end(); ++i) {
@@ -150,13 +194,13 @@ int main(int, char**)
 					reducedCountours.push_back(std::make_pair(temp , *i));
 				}
 				std::sort(reducedCountours.begin(), reducedCountours.end(), order);
-				std::cout << reducedCountours.size()<< std::endl;
+				//std::cout << reducedCountours.size()<< std::endl;
 				for (int i = 0; i < reducedCountours.size(); ++i) {
 					if (reducedCountours[i].first < max / 10) {
 						reducedCountours.erase(reducedCountours.begin());
 					}
 				}
-				std::cout << reducedCountours.size() << "\n\n\n" << std::endl;
+				//std::cout << reducedCountours.size() << "\n\n\n" << std::endl;
 				std::vector<std::vector<cv::Point>> new_contours;
 				for (auto i = reducedCountours.begin(); i != reducedCountours.end(); ++i) {
 					new_contours.push_back(i->second);
