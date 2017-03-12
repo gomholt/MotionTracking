@@ -37,11 +37,10 @@ int Motion::run() {
 	cv::createTrackbar("range +-", "ROI", &HSV_range, HSV_range_max);*/
 
 	cap >> prev;
-	background masterBkg;
 	for (int i = 0; i < 480; i++) {
-		masterBkg.avgPixelCount[i] = new int[640];
+		mbkg.avgPixelCount[i] = new int[640];
 	}
-	masterBkg.mat = cv::Mat(prev.size(), prev.type());
+	mbkg.mat = cv::Mat(prev.size(), prev.type());
 
 	for (;;)
 	{
@@ -83,17 +82,17 @@ int Motion::run() {
 		
 		
 		if (!box.empty()) {
-			//calcAvgBkg(box);
+			calcAvgBkg(box);
 		}
 		else {
 			std::vector<int> temp = { 0,0,0,0 };
-			//calcAvgBkg(temp);
+			calcAvgBkg(temp);
 		}
 
 
 		cv::imshow("binary", frameDiff.mat);
 		cv::imshow("color", currOutput);
-		cv::imshow("MasterBackground", masterBkg.mat);
+		cv::imshow("MasterBackground", mbkg.mat);
 
 		if (cv::waitKey(5) >= 0) {}
 		
