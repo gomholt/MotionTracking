@@ -16,6 +16,8 @@ int Motion::run() {
 	int box_thresh = 50;
 	int box_thresh_max = 255;
 
+	int mbkgChange = 0;
+
 
 	cv::VideoCapture cap(1); // open the default camera
 	if (!cap.isOpened())  // check if we succeeded
@@ -75,24 +77,37 @@ int Motion::run() {
 			cv::Rect bound{ box[0],box[2], box[1] - box[0],box[3] - box[2] };
 			cv::rectangle(currOutput, bound, CV_RGB(255, 0, 0), 2);
 			cv::rectangle(frameDiff.mat, bound, CV_RGB(255, 0, 0), 2);
-			std::cout << box[0] <<" "<< box[1]<< " "<<box[2]<< " "<<box[3] << std::endl;
+			
 		}
 		
 		
 		
-		
-		if (!box.empty()) {
-			calcAvgBkg(box);
+		if (first) {
+			first = false;
+			if (!box.empty()) {
+				initBkg(box);
+			}
+			else {
+				std::vector<int> temp = { 0,0,0,0 };
+				initBkg(temp);
+			}
 		}
 		else {
-			std::vector<int> temp = { 0,0,0,0 };
-			calcAvgBkg(temp);
+			if (!box.empty()) {
+				mbkgChange += calcAvgBkg(box, 100);
+			}
+			else {
+				std::vector<int> temp = { 0,0,0,0 };
+				mbkgChange += calcAvgBkg(temp, thresh);
+			}
 		}
+		
 
 
 		cv::imshow("binary", frameDiff.mat);
 		cv::imshow("color", currOutput);
 		cv::imshow("MasterBackground", mbkg.mat);
+		std::cout << mbkgChange << std::endl;
 
 		if (cv::waitKey(5) >= 0) {}
 		
@@ -204,22 +219,67 @@ bool Motion::inBox(std::vector<int>box, int x, int y) {
 }
 
 
-void Motion::calcAvgBkg(std::vector<int> area) {
+void Motion::initBkg(std::vector<int> box) {
 	for (int i = 0; i < curr.rows; ++i) {
 
 		cv::Vec3b* currPixel = curr.ptr<cv::Vec3b>(i);
 		cv::Vec3b* mbkgPixel = mbkg.mat.ptr<cv::Vec3b>(i);
 
 		for (int j = 0; j < curr.cols; ++j) {
-			//std::cout << j << "  " << i << std::endl;
-			if (!inBox(area, j, i)) {
-				mbkgPixel[j] = { (uchar)(((mbkgPixel[j][0] * mbkg.avgPixelCount[i][j]) + currPixel[j][0]) / (mbkg.avgPixelCount[i][j] + 1)),
-					(uchar)(((mbkgPixel[j][1] * mbkg.avgPixelCount[i][j]) + currPixel[j][1]) / (mbkg.avgPixelCount[i][j] + 1)),
-					(uchar)(((mbkgPixel[j][2] * mbkg.avgPixelCount[i][j]) + currPixel[j][2]) / (mbkg.avgPixelCount[i][j] + 1)) };
+			if (!inBox(box, j, i)) {
+				mbkgPixel[j] = { (uchar)currPixel[j][0], (uchar)currPixel[j][1], (uchar)currPixel[j][2] };
+				mbkg.avgPixelCount[i][j] = 1;
 			}
-			mbkg.avgPixelCount[i][j]++;
+			else {
+				mbkgPixel[j] = { (uchar)128,(uchar)128, (uchar)128 };
+				mbkg.avgPixelCount[i][j] = -1;
+			}
 		}
 	}
+
+}
+
+
+int Motion::calcAvgBkg(std::vector<int> area, int thresh) {
+	int totalDiff = 0;
+	for (int i = 0; i < curr.rows; ++i) {
+
+		cv::Vec3b* currPixel = curr.ptr<cv::Vec3b>(i);
+		cv::Vec3b* mbkgPixel = mbkg.mat.ptr<cv::Vec3b>(i);
+
+		for (int j = 0; j < curr.cols; ++j) {
+			
+			//std::cout << j << "  " << i << std::endl;
+			if (!inBox(area, j, i)) {
+				cv::Vec3b diffTemp;
+				diffTemp[0] = (currPixel[j][0] > mbkgPixel[j][0]) ? currPixel[j][0] - mbkgPixel[j][0] : mbkgPixel[j][0] - currPixel[j][0];
+				diffTemp[1] = (currPixel[j][1] > mbkgPixel[j][1]) ? currPixel[j][1] - mbkgPixel[j][1] : mbkgPixel[j][1] - currPixel[j][1];
+				diffTemp[2] = (currPixel[j][2] > mbkgPixel[j][2]) ? currPixel[j][2] - mbkgPixel[j][2] : mbkgPixel[j][2] - currPixel[j][2];
+				//std::cout << diffTemp[0] << "  " << diffTemp[1] << "  " << diffTemp[2] << std::endl;
+				
+				if (diffTemp[0] + diffTemp[1] + diffTemp[2] < 300) {
+					if (mbkg.avgPixelCount[i][j] == -1) {
+						mbkgPixel[j] = { (uchar)currPixel[j][0], (uchar)currPixel[j][1], (uchar)currPixel[j][2] };
+						mbkg.avgPixelCount[i][j] = 1;
+					}
+					else {
+						mbkgPixel[j] = { (uchar)(((mbkgPixel[j][0] * mbkg.avgPixelCount[i][j]) + currPixel[j][0]) / (mbkg.avgPixelCount[i][j] + 1)),
+							(uchar)(((mbkgPixel[j][1] * mbkg.avgPixelCount[i][j]) + currPixel[j][1]) / (mbkg.avgPixelCount[i][j] + 1)),
+							(uchar)(((mbkgPixel[j][2] * mbkg.avgPixelCount[i][j]) + currPixel[j][2]) / (mbkg.avgPixelCount[i][j] + 1)) };
+						mbkg.avgPixelCount[i][j]++;
+					}
+				}
+				else {
+					totalDiff++;
+				}
+			}
+			
+		}
+	}
+	if (totalDiff > 300000) {
+		return 1;
+	}
+	return 0;
 }
 
 

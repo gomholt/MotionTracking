@@ -33,7 +33,9 @@ private:
 
 	void filterHSV(int H_thresh, int HSV_range, int V_thresh);
 	void calcDiffRGB(int thresh);
-	void calcAvgBkg(std::vector<int>box);
+
+	void initBkg(std::vector<int> box);
+	int calcAvgBkg(std::vector<int>box, int thresh);
 	void contourROI(int threshHold);
 
 	void concatMats(cv::Mat& first, cv::Mat& second);
