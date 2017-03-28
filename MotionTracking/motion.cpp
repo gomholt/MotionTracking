@@ -27,11 +27,14 @@ int Motion::run() {
 
 	cv::namedWindow("color", 1);
 	cv::namedWindow("binary", 1);
-	cv::namedWindow("ROI", 0);
+	//cv::namedWindow("ROI", 0);
 	cv::namedWindow("MasterBackground", 1);
 
 	cv::createTrackbar("Threshold Value", "binary", &thresh, thresh_max);
 	cv::createTrackbar("Linethreshold", "color", &box_thresh, box_thresh_max);
+	std::cout << "Enter a number to begin:" << std::endl;
+	int begin = 0;
+	std::cin >> begin;
 
 	/*cv::createTrackbar("Hue", "ROI", &H_thresh, H_thresh_max);
 	cv::createTrackbar("Saturation", "ROI", &S_thresh, S_thresh_max);
@@ -43,6 +46,14 @@ int Motion::run() {
 		mbkg.avgPixelCount[i] = new int[640];
 	}
 	mbkg.mat = cv::Mat(prev.size(), prev.type());
+
+	
+	for (int i = 0; i < 4; i++) {
+		recentBoxQ.push_back(std::queue<int>());
+		recentBoxS.push_back(std::multiset<int>());
+		recentMax.push_back(0);
+	}
+	
 
 	for (;;)
 	{
@@ -77,6 +88,8 @@ int Motion::run() {
 			cv::Rect bound{ box[0],box[2], box[1] - box[0],box[3] - box[2] };
 			cv::rectangle(currOutput, bound, CV_RGB(255, 0, 0), 2);
 			cv::rectangle(frameDiff.mat, bound, CV_RGB(255, 0, 0), 2);
+			updateRecentBox(box);
+			
 			
 		}
 		
@@ -93,12 +106,15 @@ int Motion::run() {
 			}
 		}
 		else {
-			if (!box.empty()) {
-				mbkgChange += calcAvgBkg(box, 100);
+			cv::Rect rbound{ recentMax[0],recentMax[2], recentMax[1] - recentMax[0],recentMax[3] - recentMax[2] };
+			cv::rectangle(currOutput, rbound, CV_RGB(255, 255, 0), 2);
+			if (!recentMax.empty()) {
+				mbkgChange = calcAvgBkg(recentMax, 100);
 			}
 			else {
 				std::vector<int> temp = { 0,0,0,0 };
-				mbkgChange += calcAvgBkg(temp, thresh);
+				mbkgChange = calcAvgBkg(temp, thresh);
+				
 			}
 		}
 		
@@ -115,6 +131,31 @@ int Motion::run() {
 	return 0;
 }
 
+
+void Motion::updateRecentBox(std::vector<int> area) {
+	recentMax = { 0,0,0,0 };
+	for (int i = 0; i < 4; i++) {
+		if (recentBoxQ[i].size() > 10) {
+			recentBoxS[i].erase(recentBoxQ[i].front());
+			recentBoxQ[i].pop();
+		}
+		recentBoxQ[i].push(area[i]);
+		recentBoxS[i].insert(area[i]);
+	}
+
+	for (int i = 0; i < 4; i++) {
+		if (i == 1 || i == 3) {
+			recentMax[i] = (double)*(recentBoxS[i].rbegin()) * 1.05;
+		}
+		else {
+			recentMax[i] = (double)*(recentBoxS[i].begin())* .95;
+		}
+		std::cout << recentMax[i] << "  ";
+	}
+	std::cout << std::endl;
+
+		
+}
 
 
 void Motion::filterHSV(int H_thresh, int HSV_range, int V_thresh) {
@@ -242,6 +283,7 @@ void Motion::initBkg(std::vector<int> box) {
 
 int Motion::calcAvgBkg(std::vector<int> area, int thresh) {
 	int totalDiff = 0;
+	mbkg.countMax++;
 	for (int i = 0; i < curr.rows; ++i) {
 
 		cv::Vec3b* currPixel = curr.ptr<cv::Vec3b>(i);
@@ -267,10 +309,14 @@ int Motion::calcAvgBkg(std::vector<int> area, int thresh) {
 							(uchar)(((mbkgPixel[j][1] * mbkg.avgPixelCount[i][j]) + currPixel[j][1]) / (mbkg.avgPixelCount[i][j] + 1)),
 							(uchar)(((mbkgPixel[j][2] * mbkg.avgPixelCount[i][j]) + currPixel[j][2]) / (mbkg.avgPixelCount[i][j] + 1)) };
 						mbkg.avgPixelCount[i][j]++;
+						
 					}
 				}
 				else {
-					totalDiff++;
+					if ((double)mbkg.avgPixelCount[i][j] < ((double)mbkg.countMax * 0.5)) {
+						mbkgPixel[j] = { (uchar)currPixel[j][0], (uchar)currPixel[j][1], (uchar)currPixel[j][2] };
+						mbkg.avgPixelCount[i][j] = 1;
+					}
 				}
 			}
 			
@@ -279,7 +325,7 @@ int Motion::calcAvgBkg(std::vector<int> area, int thresh) {
 	if (totalDiff > 300000) {
 		return 1;
 	}
-	return 0;
+	return totalDiff;
 }
 
 
@@ -313,13 +359,11 @@ void Motion::contourROI(int threshHold) {
 			reducedCountours.push_back(std::make_pair(temp, *i));
 		}
 		std::sort(reducedCountours.begin(), reducedCountours.end(), order);
-		//std::cout << reducedCountours.size()<< std::endl;
 		for (int i = 0; i < reducedCountours.size(); ++i) {
 			if (reducedCountours[i].first < max / 10) {
 				reducedCountours.erase(reducedCountours.begin());
 			}
 		}
-		//std::cout << reducedCountours.size() << "\n\n\n" << std::endl;
 		std::vector<std::vector<cv::Point>> new_contours;
 		for (auto i = reducedCountours.begin(); i != reducedCountours.end(); ++i) {
 			new_contours.push_back(i->second);

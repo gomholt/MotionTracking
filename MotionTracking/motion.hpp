@@ -5,6 +5,7 @@
 #include "opencv2\imgproc.hpp"
 #include <iostream>
 #include <queue>
+#include <set>
 #include <algorithm>
 
 class Motion 
@@ -21,6 +22,7 @@ private:
 	struct background {
 		cv::Mat mat;
 		int** avgPixelCount = new int*[480];
+		int countMax = 0;
 	};
 
 	int mode = 0;		//what mode of motion to run
@@ -29,7 +31,12 @@ private:
 	diff frameDiff;
 	background mbkg;			//master background
 	std::vector<int> box = { 0,0,0,0 };
+	std::vector<std::queue<int>> recentBoxQ;
+	std::vector<std::multiset<int>> recentBoxS;
+	std::vector<int> recentMax;
 	bool steady;
+
+	void updateRecentBox(std::vector<int> box);
 
 	void filterHSV(int H_thresh, int HSV_range, int V_thresh);
 	void calcDiffRGB(int thresh);
