@@ -32,9 +32,6 @@ int Motion::run() {
 
 	cv::createTrackbar("Threshold Value", "binary", &thresh, thresh_max);
 	cv::createTrackbar("Linethreshold", "color", &box_thresh, box_thresh_max);
-	std::cout << "Enter a number to begin:" << std::endl;
-	int begin = 0;
-	std::cin >> begin;
 
 	/*cv::createTrackbar("Hue", "ROI", &H_thresh, H_thresh_max);
 	cv::createTrackbar("Saturation", "ROI", &S_thresh, S_thresh_max);
@@ -57,7 +54,6 @@ int Motion::run() {
 
 	for (;;)
 	{
-		
 		cap >> curr;
 
 		frameDiff.colDiffmax = 0;
@@ -150,9 +146,9 @@ void Motion::updateRecentBox(std::vector<int> area) {
 		else {
 			recentMax[i] = (double)*(recentBoxS[i].begin())* .95;
 		}
-		std::cout << recentMax[i] << "  ";
+		
 	}
-	std::cout << std::endl;
+	
 
 		
 }
@@ -291,14 +287,12 @@ int Motion::calcAvgBkg(std::vector<int> area, int thresh) {
 
 		for (int j = 0; j < curr.cols; ++j) {
 			
-			//std::cout << j << "  " << i << std::endl;
 			if (!inBox(area, j, i)) {
 				cv::Vec3b diffTemp;
 				diffTemp[0] = (currPixel[j][0] > mbkgPixel[j][0]) ? currPixel[j][0] - mbkgPixel[j][0] : mbkgPixel[j][0] - currPixel[j][0];
 				diffTemp[1] = (currPixel[j][1] > mbkgPixel[j][1]) ? currPixel[j][1] - mbkgPixel[j][1] : mbkgPixel[j][1] - currPixel[j][1];
 				diffTemp[2] = (currPixel[j][2] > mbkgPixel[j][2]) ? currPixel[j][2] - mbkgPixel[j][2] : mbkgPixel[j][2] - currPixel[j][2];
-				//std::cout << diffTemp[0] << "  " << diffTemp[1] << "  " << diffTemp[2] << std::endl;
-				
+
 				if (diffTemp[0] + diffTemp[1] + diffTemp[2] < 300) {
 					if (mbkg.avgPixelCount[i][j] == -1) {
 						mbkgPixel[j] = { (uchar)currPixel[j][0], (uchar)currPixel[j][1], (uchar)currPixel[j][2] };

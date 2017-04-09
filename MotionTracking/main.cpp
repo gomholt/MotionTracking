@@ -1,8 +1,8 @@
-#include "motion.hpp"
+#include "cvGoodies.hpp"
 
 
 int main(int, char**)
 {
-	Motion motion;
-	motion.run();
+	cvGoodies app;
+	app.run();
 }

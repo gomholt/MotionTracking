@@ -21,9 +21,21 @@
     <ClCompile Include="motion.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="cvGoodies.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="smartBackground.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="motion.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cvGoodies.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="smartBackground.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

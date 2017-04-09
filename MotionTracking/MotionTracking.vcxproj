@@ -120,9 +120,13 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="motion.cpp" />
+    <ClCompile Include="cvGoodies.cpp" />
+    <ClCompile Include="smartBackground.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="cvGoodies.hpp" />
     <ClInclude Include="motion.hpp" />
+    <ClInclude Include="smartBackground.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
