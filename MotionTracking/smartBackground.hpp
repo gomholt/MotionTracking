@@ -1,8 +1,10 @@
 #ifndef _smartBackground
 #define _smartBackground
+#include "motion.hpp"
 
-class smartBackground {
+class smartBackground : public Motion {
 private:
+
 
 
 public:

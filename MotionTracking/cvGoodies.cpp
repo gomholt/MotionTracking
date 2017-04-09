@@ -24,10 +24,12 @@ void cvGoodies::run() {
 	switch (option) {
 	case 1:
 	{
-		Motion motion;
-		motion.run();
+		Motion app;
+		app.run();
 		break; }
 	case 2:
+		smartBackground app;
+		app.run();
 		break;
 	}
 

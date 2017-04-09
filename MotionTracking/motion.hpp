@@ -25,12 +25,19 @@ private:
 		int countMax = 0;
 	};
 
+	int thresh;
+	int thresh_max;
+	int box_thresh;
+	int box_thresh_max;
+	bool first;
+
+	cv::VideoCapture cap;
+
+	cv::Mat currOutput;
+
 	int mode = 0;		//what mode of motion to run
-	cv::Mat curr;		
-	cv::Mat prev;
-	diff frameDiff;
 	background mbkg;			//master background
-	std::vector<int> box = { 0,0,0,0 };
+	//std::vector<int> box = { 0,0,0,0 };
 	std::vector<std::queue<int>> recentBoxQ;
 	std::vector<std::multiset<int>> recentBoxS;
 	std::vector<int> recentMax;
@@ -44,16 +51,20 @@ private:
 	void initBkg(std::vector<int> box);
 	int calcAvgBkg(std::vector<int>box, int thresh);
 	void contourROI(int threshHold);
-
-	void concatMats(cv::Mat& first, cv::Mat& second);
-
-
+	
 	std::vector<int> calcROIBox(int box_thresh, int box_thresh_max);
 	bool inBox(std::vector<int>box, int x, int y);
 
 public:
 	Motion();
 	int run();			//executes the motion process
+
+protected:
+	void loopMotionBody();
+	cv::Mat curr;
+	cv::Mat prev;
+	diff frameDiff;
+	std::vector<int> box = { 0,0,0,0 };
 
 
 };

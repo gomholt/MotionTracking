@@ -5,38 +5,29 @@ namespace {
 }
 
 Motion::Motion(){
+	thresh = 36;
+	thresh_max = 255;
 
+	box_thresh = 50;
+	box_thresh_max = 255;
+
+	cap = cv::VideoCapture(1); // open the default camera
+	first = true;
 }
 
 
 int Motion::run() {
-	int thresh = 36;
-	int thresh_max = 255;
-
-	int box_thresh = 50;
-	int box_thresh_max = 255;
-
-	int mbkgChange = 0;
-
-
-	cv::VideoCapture cap(1); // open the default camera
 	if (!cap.isOpened())  // check if we succeeded
 		return -1;
 
-	bool first = true;
+	int mbkgChange = 0;
 
 	cv::namedWindow("color", 1);
 	cv::namedWindow("binary", 1);
-	//cv::namedWindow("ROI", 0);
 	cv::namedWindow("MasterBackground", 1);
 
 	cv::createTrackbar("Threshold Value", "binary", &thresh, thresh_max);
 	cv::createTrackbar("Linethreshold", "color", &box_thresh, box_thresh_max);
-
-	/*cv::createTrackbar("Hue", "ROI", &H_thresh, H_thresh_max);
-	cv::createTrackbar("Saturation", "ROI", &S_thresh, S_thresh_max);
-	cv::createTrackbar("Value", "ROI", &V_thresh, V_thresh_max);
-	cv::createTrackbar("range +-", "ROI", &HSV_range, HSV_range_max);*/
 
 	cap >> prev;
 	for (int i = 0; i < 480; i++) {
@@ -54,44 +45,10 @@ int Motion::run() {
 
 	for (;;)
 	{
-		cap >> curr;
-
-		frameDiff.colDiffmax = 0;
-		frameDiff.rowDiffmax = 0;
-		for (int i = 0; i < 480; i++) {
-			frameDiff.rowDifftotals[i] = 0;
-		}
-		for (int i = 0; i < 640; i++) {
-			frameDiff.colDifftotals[i] = 0;
-		}
-
-
-		box = { 0,0,0,0 };
-		frameDiff.mat = cv::Mat(curr.size(), curr.type());
-		cv::GaussianBlur(curr, curr, cv::Size(7, 7), 1.5, 1.5);
-
-		calcDiffRGB(thresh);
-		curr.copyTo(prev);
-
-		cv::Mat currOutput;
-		currOutput = cv::Mat(curr.size(), curr.type());
-		curr.copyTo(currOutput);
-		box = calcROIBox(box_thresh, box_thresh_max);
-
-
-		if (!box.empty()) {
-			contourROI(300);
-			cv::Rect bound{ box[0],box[2], box[1] - box[0],box[3] - box[2] };
-			cv::rectangle(currOutput, bound, CV_RGB(255, 0, 0), 2);
-			cv::rectangle(frameDiff.mat, bound, CV_RGB(255, 0, 0), 2);
-			updateRecentBox(box);
-			
-			
-		}
+		loopMotionBody();
 		
 		
-		
-		if (first) {
+		/*if (first) {
 			first = false;
 			if (!box.empty()) {
 				initBkg(box);
@@ -112,19 +69,53 @@ int Motion::run() {
 				mbkgChange = calcAvgBkg(temp, thresh);
 				
 			}
-		}
+		}*/
 		
 
 
 		cv::imshow("binary", frameDiff.mat);
 		cv::imshow("color", currOutput);
-		cv::imshow("MasterBackground", mbkg.mat);
-		std::cout << mbkgChange << std::endl;
+		//cv::imshow("MasterBackground", mbkg.mat);
 
 		if (cv::waitKey(5) >= 0) {}
 		
 	}
 	return 0;
+}
+
+void Motion::loopMotionBody() {
+	cap >> curr;
+
+	frameDiff.colDiffmax = 0;
+	frameDiff.rowDiffmax = 0;
+	for (int i = 0; i < 480; i++) {
+		frameDiff.rowDifftotals[i] = 0;
+	}
+	for (int i = 0; i < 640; i++) {
+		frameDiff.colDifftotals[i] = 0;
+	}
+
+
+	box = { 0,0,0,0 };
+	frameDiff.mat = cv::Mat(curr.size(), curr.type());
+	cv::GaussianBlur(curr, curr, cv::Size(7, 7), 1.5, 1.5);
+
+	calcDiffRGB(thresh);
+	curr.copyTo(prev);
+
+	currOutput = cv::Mat(curr.size(), curr.type());
+	curr.copyTo(currOutput);
+	box = calcROIBox(box_thresh, box_thresh_max);
+
+
+	if (!box.empty()) {
+		contourROI(300);
+		cv::Rect bound{ box[0],box[2], box[1] - box[0],box[3] - box[2] };
+		cv::rectangle(currOutput, bound, CV_RGB(255, 0, 0), 2);
+		cv::rectangle(frameDiff.mat, bound, CV_RGB(255, 0, 0), 2);
+		updateRecentBox(box);
+	}
+
 }
 
 
@@ -145,15 +136,13 @@ void Motion::updateRecentBox(std::vector<int> area) {
 		}
 		else {
 			recentMax[i] = (double)*(recentBoxS[i].begin())* .95;
-		}
-		
-	}
-	
-
-		
+		}	
+	}	
 }
 
-
+/*
+not in use currently
+*/
 void Motion::filterHSV(int H_thresh, int HSV_range, int V_thresh) {
 	for (int i = 0; i < prev.rows; ++i) {
 		cv::Vec3b* currPixel = curr.ptr<cv::Vec3b>(i);
