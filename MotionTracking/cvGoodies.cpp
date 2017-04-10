@@ -20,11 +20,12 @@ void cvGoodies::run() {
 		
 	} while (option < 1 || option > 2);
 
-	std::cout << option << std::endl;
 	switch (option) {
 	case 1:
 	{
+		std::cout << "Starting Motion App" << std::endl;
 		Motion app;
+		std::cout << "running Motion App" << std::endl;
 		app.run();
 		break; }
 	case 2:
@@ -34,3 +35,5 @@ void cvGoodies::run() {
 	}
 
 }
+
+

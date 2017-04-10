@@ -19,12 +19,6 @@ private:
 		int colDiffmax = 0;
 	};
 
-	struct background {
-		cv::Mat mat;
-		int** avgPixelCount = new int*[480];
-		int countMax = 0;
-	};
-
 	int thresh;
 	int thresh_max;
 	int box_thresh;
@@ -33,14 +27,12 @@ private:
 
 	cv::VideoCapture cap;
 
-	cv::Mat currOutput;
+	
 
 	int mode = 0;		//what mode of motion to run
-	background mbkg;			//master background
-	//std::vector<int> box = { 0,0,0,0 };
+	
 	std::vector<std::queue<int>> recentBoxQ;
 	std::vector<std::multiset<int>> recentBoxS;
-	std::vector<int> recentMax;
 	bool steady;
 
 	void updateRecentBox(std::vector<int> box);
@@ -48,23 +40,23 @@ private:
 	void filterHSV(int H_thresh, int HSV_range, int V_thresh);
 	void calcDiffRGB(int thresh);
 
-	void initBkg(std::vector<int> box);
-	int calcAvgBkg(std::vector<int>box, int thresh);
 	void contourROI(int threshHold);
 	
 	std::vector<int> calcROIBox(int box_thresh, int box_thresh_max);
-	bool inBox(std::vector<int>box, int x, int y);
 
 public:
 	Motion();
 	int run();			//executes the motion process
 
 protected:
+	int initMotion();
 	void loopMotionBody();
 	cv::Mat curr;
 	cv::Mat prev;
+	cv::Mat currOutput;
 	diff frameDiff;
 	std::vector<int> box = { 0,0,0,0 };
+	std::vector<int> recentMax;
 
 
 };
